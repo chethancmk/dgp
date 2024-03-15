@@ -1,4 +1,4 @@
-awscli
+#awscli
 coverage==6.0.2
 isort >=5.0,<6.0
 pylint>=2.8.1
