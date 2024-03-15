@@ -1,5 +1,6 @@
 boto3
 botocore
+google-cloud-storage
 Click>=7.1.2
 diskcache>=4.1.0
 protobuf>=3.20.1,<4.0.0

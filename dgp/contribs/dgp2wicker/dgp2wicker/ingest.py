@@ -16,8 +16,6 @@ import numpy as np
 import pyspark
 import wicker
 import wicker.plugins.spark as wsp
-# GCS Specific Changes
-import wicker.plugins.spark_gcs as wsp_gcs
 from wicker.schema import IntField, StringField
 
 from dgp.datasets import ParallelDomainScene, SynchronizedScene
