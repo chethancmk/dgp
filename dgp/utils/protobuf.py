@@ -15,8 +15,9 @@ from dgp.utils.cloud.s3 import (
     convert_uri_to_bucket_path,
     get_string_from_s3_file,
 )
-
-logger = logging.getLogger(__name__)
+from dgp.utils.cloud.gcs import (
+    get_string_from_gcs_file,
+)
 
 
 def open_pbobject(path, pb_class):
@@ -38,8 +39,9 @@ def open_pbobject(path, pb_class):
     pb_object: pb2 object
         Desired pb2 object to be opened.
     """
+    print("Inside open_pbobject function")
     assert path.endswith(".json"), 'File extension for {} needs to be json.'.format(path)
-    if path.startswith('s3://'):
+    if path.startswith('s3://') or path.startswith('gs://'):
         return open_remote_pb_object(path, pb_class)
     assert os.path.exists(path), f'Path not found: {path}'
     with open(path, 'r', encoding='UTF-8') as json_file:
@@ -70,7 +72,7 @@ def parse_pbobject(source, pb_class):
         pb_object.ParseFromString(source)
         return pb_object
     else:
-        logger.error(f'cannot parse type {type(source)}')
+        logging.error(f'cannot parse type {type(source)}')
 
 
 def open_remote_pb_object(s3_object_uri, pb_class):
@@ -94,12 +96,19 @@ def open_remote_pb_object(s3_object_uri, pb_class):
     ValueError
         Raised if s3_object_uri is not a valid S3 path.
     """
+    print("Inside open_remote_pb_object function")
     if s3_object_uri.startswith('s3://'):
         bucket_name, s3_base_path = convert_uri_to_bucket_path(s3_object_uri)
+        pb_object = Parse(get_string_from_s3_file(bucket_name, s3_base_path), pb_class())
+    elif s3_object_uri.startswith('gs://'):
+        bucket_name, s3_base_path = convert_uri_to_bucket_path(s3_object_uri)
+        pb_object = Parse(get_string_from_gcs_file(bucket_name, s3_base_path), pb_class())
+        print('Recieved JSON')
+        print(pb_object)
     else:
         raise ValueError("Expected path to S3 bucket but got {}".format(s3_object_uri))
 
-    pb_object = Parse(get_string_from_s3_file(bucket_name, s3_base_path), pb_class())
+    #pb_object = Parse(get_string_from_s3_file(bucket_name, s3_base_path), pb_class())
 
     return pb_object
 
@@ -156,20 +165,20 @@ def open_ontology_pbobject(ontology_file):
     try:
         ontology = parse_pbobject(ontology_file, OntologyV2Pb2)
         if ontology is not None:
-            logger.debug('Successfully loaded Ontology V2 spec.')
+            logging.info('Successfully loaded Ontology V2 spec.')
             return ontology
     except Exception:
-        logger.error('Failed to load ontology file with V2 spec, trying V1 spec.')
+        logging.error('Failed to load ontology file with V2 spec, trying V1 spec.')
     try:
         ontology = parse_pbobject(ontology_file, OntologyV1Pb2)
         if ontology is not None:
-            logger.debug('Successfully loaded Ontology V1 spec.')
+            logging.info('Successfully loaded Ontology V1 spec.')
             return ontology
     except Exception:
         if isinstance(ontology_file, str):
-            logger.error('Failed to load ontology file' + ontology_file + 'with V1 spec also, returning None.')
+            logging.error('Failed to load ontology file' + ontology_file + 'with V1 spec also, returning None.')
         else:
-            logger.error('Failed to load ontology file with V1 spec also, returning None.')
+            logging.error('Failed to load ontology file with V1 spec also, returning None.')
 
 
 def open_feature_ontology_pbobject(ontology_file):
@@ -189,10 +198,10 @@ def open_feature_ontology_pbobject(ontology_file):
     try:
         ontology = open_pbobject(ontology_file, FeatureOntologyPb2)
         if ontology is not None:
-            logger.debug('Successfully loaded FeatureOntology spec.')
+            logging.info('Successfully loaded FeatureOntology spec.')
             return ontology
     except Exception:
-        logger.error('Failed to load ontology file' + ontology_file + '.')
+        logging.error('Failed to load ontology file' + ontology_file + '.')
 
 
 def generate_uid_from_pbobject(pb_object):
